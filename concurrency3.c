@@ -34,13 +34,15 @@ int main(){
     	sem_init( &noInserter, 0, 1 );
     	sem_init( &noDeleter, 0, 1 );
 
-	for(i = 0; i < 2; i++){
+	int i;
+
+	for( i = 0; i < 2; i++){
 		pthread_create( &SearchThread[i], NULL, Searches, NULL );
 		pthread_create( &InsertThread[i], NULL, Inserts, NULL );
 		pthread_create( &DeleteThread[i], NULL, Deleters, NULL );
 	}
 
-	for(i = 0; i < 2; i++){
+	for( i = 0; i < 2; i++){
 		pthread_join( SearchThread[i], NULL );
 		pthread_join( InsertThread[i], NULL );
 		pthread_join( DeleteThread[i], NULL );
