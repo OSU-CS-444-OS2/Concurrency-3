@@ -33,17 +33,24 @@ void *Searches(){
 }
 
 //Inserts - add new items to the end of the list; insertions must be mutually exclusive to preclude two inserters from inserting new items at about the same time.
-void Inserts(){
+void *Inserts(){
 	//While 1
 		//Check if lock
+		//if not then lock it and delete
 			//Check If there is room in the list to add
+				//Add list
+				//unlock
 
-
+	//End while
 }
 
 //Deleters - 
-void Deleters(){
+void *Deleters(){
+	//While 1
+		//Check if insert is locked if not then lock it and lock search
+			//Delete the last link list
+			//repoint the new list correctly 
+			//unlock
 
-
-
+	//End while
 }
