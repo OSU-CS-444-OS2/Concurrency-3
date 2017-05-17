@@ -17,14 +17,16 @@ struct List *Head;
 //Struct
 struct List {
 	int Number;
-	struct List *next;
+	struct List *Next;
 };
+
 
 //Functions
 void *Searches();
 void *Inserts();
 void *Deleters();
-int randomNumer();
+int randomNumber();
+int linkListCount();
 
 
 //Main
@@ -34,7 +36,13 @@ int main(int argc, char *argv[]){
     	sem_init( &noInserter, 0, 1 );
     	sem_init( &noDeleter, 0, 1 );
 
-	int i;
+	struct List *StartLinkList;
+	StartLinkList = ( struct List * )malloc( sizeof( struct List ) );
+	StartLinkList->Number = randomNumber( 1, 100 );
+	StartLinkList->Next = NULL;
+	Head = StartLinkList;
+
+	int i, id[2];
 
 	for( i = 0; i < 2; i++){
 		id[i]=i;
@@ -57,12 +65,11 @@ void *Searches(void *arg){
 	int searcher_id=*(int *)arg;
 	while(1){
 		sem_wait( &noSearcher );
-		//Needs to check if there is a lock on search
-			//If not then print Searching through list
-
 		printf( "Searcher %d Starts\n",searcher_id );            		
+
 		struct Link *LittleLink = Head;
 		int i = 1;
+		LittleLink = Head->Next;
 
 		while( LittleLink->Next != NULL ){
 			printf( "Searching looking at link %d: %d", i, LittleLink->Number );
@@ -79,26 +86,22 @@ void *Inserts(void *arg){
 	int Inserter_id=*(int *)arg;
 	while(1){
 		if( linkListCount() != 32 ){
-			//Check if lock
 			sem_wait(&noInserter);
-			//pthread_mutex_lock(&insertMutex);
-			//lock it and delete
 			printf( "Insert %d Starts\n" , Inserter_id);            		
 
-			struct Link *LittleLink = Head, *NewLink;
+			struct Link *LittleLink = Head;
 
 			while( LittleLink->Next != NULL ){
 				LittleLink = LittleLink->Next;
 			}
 
-			LittleLink->Next = NewLink;
+			struct List *NewLink;
+			NewLink = ( struct List * )malloc( sizeof( struct List ) );
+			NewLink->Number = randomNumber( 1, 100 );
 			NewLink->Next = NULL;
-			NewLink->Number	= randomNumber( 1, 100 );
-			printf( "Inserted link %d: %d\n" ,listLinkCount() ,NewLink->Number );            		
 
-			//Check If there is room in the list to add
-			//Adds to the end of the list
-        		//pthread_mutex_unlock( &insertMutex );
+			LittleLink->Next = NewLink;
+			printf( "Inserted link %d: %d\n" ,listLinkCount() ,NewLink->Number );            		
 			
 			printf( "Insert %d Ends\n", Inserter_id );            		
 
@@ -114,8 +117,9 @@ void *Inserts(void *arg){
 //Deleters -
 void *Deleters(void *arg){
 	int De_id=*(int *)arg;
+
 	while(1){
-		if(linkListCount > 1){
+		if(linkListCount() > 1){
 			//Check if insert is locked if not then lock it and lock search
 			sem_wait( &noDeleter );
 			sem_wait( &noInserter );
@@ -174,7 +178,8 @@ int randomNumber(int Min, int Max){
 }
 
 int linkListCount(){
-	struct Link *Count = Head;
+	struct Link *Count;
+	Count = Head;
 	int i = 1;
 
 	while( Count->Next != NULL ){
