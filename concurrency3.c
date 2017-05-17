@@ -10,11 +10,11 @@
 pthread_cond_t SearchCondThread;
 pthread_cond_t InsertCondThread;
 pthread_cond_t DeleteCondThread;
-pthread_mutex_t MutexThread;
-
+pthread_mutex_t insertMutex;
+sem_t noSearcher,noInserter;
 //Struct
 struct List {
-	int Number;	
+	int Number;
 	struct List *next;
 };
 
@@ -28,6 +28,8 @@ int randomNumer();
 //Main
 int main(){
 	pthread_t SearchThread[3], InsertThread[3], DeleteThread[3];
+    sem_init(&noSearcher,0,0);
+    sem_init(&noInserter,0,0);
 
 	for(i = 0; i < 2; i++){
 		pthread_create( &SearchThread[i], NULL, Searches, NULL );
@@ -47,10 +49,11 @@ int main(){
 //Searchers - merely examine the list; hence they can execute concurrently with each other.
 void *Searches(){
 	while(1){
-		if(){
+	    sem_wait(&noSearcher);
 		//Needs to check if there is a lock on search
 			//If not then print Searching through list
-		}		
+        sleep(randomNumber(2,5));
+		sem_post(&noSearcher);
 	}
 }
 
@@ -58,25 +61,32 @@ void *Searches(){
 void *Inserts(){
 	while(1){
 		//Check if lock
-		if(){
+		sem_wait(&noInserter);
+		pthread_mutex_lock(&insertMutex);
 			//lock it and delete
 
 			//Check If there is room in the list to add
 				//Adds to the end of the list
+        sleep(randomNumber(2,5));
+        pthread_mutex_unlock(&insertMutex);
+        sem_post(&noInserter);
 				//unlock
-			
+
 		}
 	}
-}
 
-//Deleters - 
+//Deleters -
 void *Deleters(){
 	while(1){
 		//Check if insert is locked if not then lock it and lock search
-			//Delete a link
-			//repoint the new list correctly 
+		sem_wait(&noSearcher);
+		sem_wait(&noInserter);
+            //Delete a link
+			//repoint the new list correctly
+        sleep(randomNumber(2,5));
 			//unlock
-
+        sem_post(&noInserter);
+        sem_post(&noSearcher);
 	}
 }
 
