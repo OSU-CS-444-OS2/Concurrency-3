@@ -30,8 +30,8 @@ int randomNumer();
 //Main
 int main(){
 	pthread_t SearchThread[3], InsertThread[3], DeleteThread[3];
-    	sem_init(&noSearcher,0,0);
-    	sem_init(&noInserter,0,0);
+    	sem_init( &noSearcher, 0, 0 );
+    	sem_init( &noInserter, 0, 0 );
 
 	for(i = 0; i < 2; i++){
 		pthread_create( &SearchThread[i], NULL, Searches, NULL );
@@ -51,28 +51,49 @@ int main(){
 //Searchers - merely examine the list; hence they can execute concurrently with each other.
 void *Searches(){
 	while(1){
-		sem_wait(&noSearcher);
+		sem_wait( &noSearcher );
 		//Needs to check if there is a lock on search
 			//If not then print Searching through list
-        	sleep(randomNumber(2,5));
-		sem_post(&noSearcher);
+
+		struct Link *LittleLink = Head;
+		int i = 1;
+
+		while( LittleLink->Next != NULL ){
+			printf( "Link %d: %d", i, LittleLink->Number );
+		}
+
+        	sleep( randomNumber( 2, 5 ) );
+		sem_post( &noSearcher );
 	}
 }
 
 //Inserts - add new items to the end of the list; insertions must be mutually exclusive to preclude two inserters from inserting new items at about the same time.
 void *Inserts(){
 	while(1){
-		//Check if lock
-		sem_wait(&noInserter);
-		pthread_mutex_lock(&insertMutex);
-		//lock it and delete
+		if( linkListCount() != 32 ){
+			//Check if lock
+			sem_wait(&noInserter);
+			pthread_mutex_lock(&insertMutex);
+			//lock it and delete
 
-		//Check If there is room in the list to add
-		//Adds to the end of the list
-        	sleep(randomNumber(2,5));
-        	pthread_mutex_unlock(&insertMutex);
-        	sem_post(&noInserter);
-		//unlock
+			struct Link *LittleLink = Head, *NewLink;
+
+			while( LittleLink->Next != NULL ){
+				LittleLink = LittleLink->Next;
+			}
+
+			LittleLink->Next = NewLink;
+			NewLink->Next = NULL;
+			NewLink->Number	= randomNumber( 1, 100 );
+
+			//Check If there is room in the list to add
+			//Adds to the end of the list
+        		pthread_mutex_unlock( &insertMutex );
+        		sem_post( &noInserter );
+			//Unlock
+        	}
+	
+		sleep( randomNumber( 2, 5 ) );
 
 	}
 }
@@ -82,19 +103,19 @@ void *Deleters(){
 	while(1){
 		if(linkListCount > 1){
 			//Check if insert is locked if not then lock it and lock search
-			sem_wait(&noSearcher);
-			sem_wait(&noInserter);
+			sem_wait( &noSearcher );
+			sem_wait( &noInserter );
             		
 			//Delete a link
-			//repoint the new list correctly
+			//Repoint the new list correctly
 			int i, Spot = randomNumber(1, linkListCount);
-			struct Link LittleLink = Head;
+			struct Link *LittleLink = Head;
 		
 			for( i = 0; i < Spot - 1; i++ ){
 				LittleLink = LittleLink->Next;
 			}
 
-			struct Link DeleteLink = LittleLink->Next, NextLink;
+			struct Link *DeleteLink = LittleLink->Next, *NextLink;
 		
 			if( Spot == linkListCount ){
 				NextLink = NULL;
@@ -105,13 +126,15 @@ void *Deleters(){
 
 			free(DeleteLink);
 		
-			LittleLink->Next = NextLink;		
+			LittleLink->Next = NextLink;
 
-        		sleep(randomNumber(2,5));
-			//unlock
+			//Unlock
         		sem_post(&noInserter);
         		sem_post(&noSearcher);
 		}
+        		
+		sleep(randomNumber(2,5));
+
 	}
 }
 
@@ -125,6 +148,12 @@ int randomNumber(int Min, int Max){
 }
 
 int linkListCount(){
+	struct Link *Count = Head;
+	int i = 1;
 
+	while( Count->Next != NULL ){
+		i++;
+	}
 
+	return i;
 }
