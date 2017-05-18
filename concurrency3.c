@@ -10,7 +10,6 @@
 pthread_cond_t SearchCondThread;
 pthread_cond_t InsertCondThread;
 pthread_cond_t DeleteCondThread;
-//pthread_mutex_t insertMutex;
 sem_t noSearcher, noInserter, noDeleter;
 
 //Struct
@@ -30,12 +29,17 @@ int randomNumber(int Min, int Max);
 //Main
 int main(int argc, char *argv[]){
 	pthread_t SearchThread[3], InsertThread[3], DeleteThread[3];
+
+	//Semaphore init
     	sem_init( &noSearcher, 0, 3 );
     	sem_init( &noInserter, 0, 1 );
     	sem_init( &noDeleter, 0, 1 );
+
+	//Getting time set up for random numbers
    	time_t t;
 	srand( (unsigned) time(&t) );
 
+	//Init linkList
 	struct linkList *StartLinkList;
 	StartLinkList = ( struct linkList * )malloc( sizeof( struct linkList ) );
 	StartLinkList->Number = randomNumber( 1, 100 );
@@ -43,15 +47,18 @@ int main(int argc, char *argv[]){
 	Head = StartLinkList;
 
 	int i, id[2];
-
 	for( i = 0; i < 3; i++){
+		//Gives id numbers
 		id[i]=i;
+
+		//Creating thread
 		pthread_create( &SearchThread[i], NULL, Searches, (void*)(&id[i]) );
 		pthread_create( &InsertThread[i], NULL, Inserts, (void*)(&id[i]) );
 		pthread_create( &DeleteThread[i], NULL, Deleters, (void*)(&id[i]) );
 	}
 
 	for( i = 0; i < 3; i++){
+		//Threads join
 		pthread_join( SearchThread[i], NULL );
 		pthread_join( InsertThread[i], NULL );
 		pthread_join( DeleteThread[i], NULL );
@@ -67,21 +74,36 @@ void *Searches(void *arg){
 
 	while(1){
 
+		//Checks for if the deleter is going off.
 		sem_wait( &noSearcher );
+
+		//Start
 		printf( "---------- Searcher %d Starts ----------\n",searcher_id );            		
+		fflush( stdout );
 
 		struct linkList *LittleLink = Head;
 		int i = 1;
 
 		while( LittleLink->Next != NULL ){
+
+			//Prints what the Searcher is currently looking at
 			printf( "Searching looking at link %d: %d\n", i, LittleLink->Number );
 			i++;
 			LittleLink = LittleLink->Next;
+			fflush( stdout );
+
 		}
 
-		printf( "---------- Searcher %d Ends ----------\n" ,searcher_id);           		
+		//Seacher ends
+		printf( "---------- Searcher %d Ends ----------\n" ,searcher_id);     
+		fflush( stdout );   
+	
+		//Unlocks   		
 		sem_post( &noSearcher );
-        	sleep( randomNumber( 2, 5 ) );
+
+		//Sleeps
+        	sleep( 2 );
+
 	}
 }
 
@@ -92,6 +114,7 @@ void *Inserts(void *arg){
 
 	while(1){
 
+		//Inserters must wait for each other to finish and wait for the destoyer to stop
 		sem_wait(&noInserter);
 
 		int i = 1;
@@ -102,34 +125,44 @@ void *Inserts(void *arg){
 			i++;
 		}	
 
+		//Max link list can be
 		if(i < 32){
 
-			printf( "Insert %d Starts\n" , Inserter_id);            		
+			//Start
+			printf( "Insert %d Starts - Blocking other Inserters\n" , Inserter_id);       
+			fflush( stdout );     		
 
 			struct linkList *LittleLink = Head;
 			i = 1;
 
+			//Getting the last link
 			while( LittleLink->Next != NULL ){
 				LittleLink = LittleLink->Next;
 				i++;
 			}
 
+			//Creating new link and adding it to link list
 			struct linkList *NewLink;
 			NewLink = ( struct linkList * )malloc( sizeof( struct linkList ) );
 			NewLink->Number = randomNumber( 1, 100 );
 			NewLink->Next = NULL;
-
 			LittleLink->Next = NewLink;
+
+			//Print the new link
 			printf( "Inserter %d inserted link %d: %d ------------------------------------------\n" ,Inserter_id , (i + 1) ,NewLink->Number );
-			printf( "Insert %d Ends\n", Inserter_id );            		
+			fflush( stdout );
+
+			//End
+			printf( "Insert %d Ends\n", Inserter_id ); 
+			fflush( stdout );           		
 
 		}
 
 		//Unlock
         	sem_post( &noInserter );
-        	//}
 	
-		sleep( randomNumber( 2, 5 ) );
+		//Sleeps
+		sleep( 2 );
 
 	}
 }
@@ -149,23 +182,25 @@ void *Deleters(void *arg){
 		sem_wait( &noSearcher );
 		sem_wait( &noSearcher );
 
-		int j = 0;
+		int j = 0, sleepTime = 0;
 		struct linkList *Check = Head;
 		
+		//Checks the size of the link list
 		while( Check->Next != NULL ){
 			Check = Check->Next;
 			j++;
-		}	
+		}
 
 		if(j > 1){		
 
-			printf( "Deleter %d Starts\n", De_id);            		
+			//Starts
+			printf( "Deleter %d Starts - Blocking Inserters and Searches\n", De_id);   
+			fflush( stdout );         		
 
-			//Delete a link
-			//Repoint the new list correctly
 			int i, Spot = randomNumber(1, j);
 			struct linkList *LittleLink = Head;
 		
+			//Gets location of the link that it is deleting
 			for( i = 0; i < Spot - 1; i++ ){
 				LittleLink = LittleLink->Next;
 			}
@@ -179,30 +214,39 @@ void *Deleters(void *arg){
 				NextLink = DeleteLink->Next;
 			}
 
+			//Prints the link that it is deleting
 			printf( "Deleter deletes link %d: %d\n" , (Spot + 1) ,DeleteLink->Number ); 
+			fflush( stdout );
            		
+			//Deletes a link
 			free(DeleteLink);
+
+			//Repoint the new list correctly
 			LittleLink->Next = NextLink;
 
-			printf( "Deleter %d Ends\n", De_id);            		
+			//End
+			printf( "Deleter %d Ends\n", De_id);       
+			fflush( stdout );     		
 			
-			//Unlock
-        		sem_post(&noSearcher);
-        		sem_post(&noSearcher);
-        		sem_post(&noSearcher);
-        		sem_post(&noInserter);
-        		sem_post(&noDeleter);
-
 		}
-        		
-		sleep(randomNumber(2,5));
-
+		
+		//Unlock
+        	sem_post(&noSearcher);
+        	sem_post(&noSearcher);
+        	sem_post(&noSearcher);
+        	sem_post(&noInserter);
+        	sem_post(&noDeleter);
+	
+		//Sleeps
+		if( j > 16){
+			sleep( randomNumber( 1, 2 ) );
+		}else{
+			sleep( randomNumber( 10, 15 ) );
+		}
 	}
 }
 
-
 //Extra Functions
 int randomNumber(int Min, int Max){
-
 	return rand() % Max + Min;
 }
